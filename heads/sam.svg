@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 14 380 450" width="380" height="450">
+  <!-- Placeholder head, so the site works before you add real photos. tools/cut-heads.sh replaces it. -->
+  <defs><g id="s"><circle cx="62" cy="285" r="28"/><circle cx="338" cy="285" r="28"/><ellipse cx="200" cy="275" rx="140" ry="172"/><circle cx="92" cy="158" r="54"/><circle cx="142" cy="108" r="58"/><circle cx="200" cy="90" r="60"/><circle cx="258" cy="108" r="58"/><circle cx="308" cy="158" r="54"/><circle cx="66" cy="214" r="40"/><circle cx="334" cy="214" r="40"/></g></defs>
+  <use href="#s" fill="#fff" stroke="#fff" stroke-width="24" stroke-linejoin="round"/>
+  <g fill="#8d5a3b"><circle cx="62" cy="285" r="28"/><circle cx="338" cy="285" r="28"/><ellipse cx="200" cy="275" rx="140" ry="172"/></g>
+  <g fill="#6e4129" opacity=".55"><circle cx="62" cy="285" r="13"/><circle cx="338" cy="285" r="13"/></g>
+  <g fill="#ff8a8a" opacity=".32"><circle cx="112" cy="318" r="24"/><circle cx="288" cy="318" r="24"/></g>
+  <g fill="none" stroke="#1f1a17" stroke-width="9" stroke-linecap="round"><path d="M126 226q24-15 48 0"/><path d="M226 226q24-15 48 0"/></g>
+  <g fill="#2a2320"><circle cx="150" cy="262" r="13"/><circle cx="250" cy="262" r="13"/></g>
+  <g fill="#fff"><circle cx="155" cy="257" r="4"/><circle cx="255" cy="257" r="4"/></g>
+  <path d="M200 276q-16 36 6 42" fill="none" stroke="#6e4129" stroke-width="7" stroke-linecap="round"/>
+  <path d="M146 346q54 62 108 0z" fill="#7a1f2b"/><path d="M154 348q46 14 92 0l-4 11q-42 12-84 0z" fill="#fff"/>
+  <g fill="#1f1a17"><circle cx="92" cy="158" r="54"/><circle cx="142" cy="108" r="58"/><circle cx="200" cy="90" r="60"/><circle cx="258" cy="108" r="58"/><circle cx="308" cy="158" r="54"/><circle cx="66" cy="214" r="40"/><circle cx="334" cy="214" r="40"/></g><g fill="#fff" opacity=".14"><rect x="112" y="234" width="76" height="60" rx="22"/><rect x="212" y="234" width="76" height="60" rx="22"/></g><g fill="none" stroke="#1a1a1a" stroke-width="8"><rect x="112" y="234" width="76" height="60" rx="22"/><rect x="212" y="234" width="76" height="60" rx="22"/><path d="M188 258q12-8 24 0"/></g>
+</svg>

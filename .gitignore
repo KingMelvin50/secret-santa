@@ -1,0 +1,7 @@
+# Original photos stay on your computer. Only the cut-out heads in heads/ are part of the site.
+photos/*
+!photos/.gitkeep
+.DS_Store
+.vercel
+.claude/settings.local.json
+_site

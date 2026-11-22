@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--
+  LINK PREVIEW: what shows when the link is pasted into a group chat. Chat apps don't run scripts,
+  so these six lines can't come from config.js. Edit them by hand:
+    1. the name of your site (title + og:title + og:image:alt)
+    2. the real address of your site, once you have one (og:url + og:image + twitter:image)
+-->
+<title>Ho Ho Who?</title>
+<meta property="og:title" content="Ho Ho Who? · Secret Santa">
+<meta property="og:image:alt" content="Heads in Santa hats under the words Ho Ho Who?">
+<meta property="og:url" content="https://YOUR-SITE.example/">
+<meta property="og:image" content="https://YOUR-SITE.example/share.jpg">
+<meta name="twitter:image" content="https://YOUR-SITE.example/share.jpg">
+<!-- end of link preview -->
+<meta name="description" content="Tap your own head.">
+<meta property="og:description" content="Tap your own head.">
+<meta property="og:type" content="website">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Asks search engines not to list the site: it's full of your friends' faces. -->
+<meta name="robots" content="noindex, noimageindex">
+<meta name="theme-color" content="#b81d2c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%85%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&display=swap" rel="stylesheet">
+<style>
+  /* COLOURS: change the look here. (tools/share-image.html has its own copy for the link preview.) */
+  :root {
+    --bg: #b81d2c;         /* background */
+    --bg-light: #d22c3c;   /* glow in the middle of the background */
+    --bg-dark: #8a1120;    /* edges of the background */
+    --bg-deep: #7c0e1b;    /* hard shadow under the big words */
+    --shade: rgba(60, 0, 8, .34);   /* soft shadows */
+    --cream: #fff3dc;      /* words, buttons, name tags */
+    --accent: #ffd166;     /* the starred word, the revealed name */
+    --ink: #5b0a14;        /* text on top of the accent colour */
+    --display: 'Bagel Fat One', 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
+    --text: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --d: 120px;   /* head height, set from JS */
+    --p: 140px;   /* present size, set from JS */
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    position: fixed; inset: 0; overflow: hidden;
+    background: radial-gradient(120% 85% at 50% 28%, var(--bg-light) 0%, var(--bg) 52%, var(--bg-dark) 100%) var(--bg);
+    color: var(--cream); font-family: var(--text);
+    user-select: none; -webkit-user-select: none; touch-action: none; overscroll-behavior: none;
+  }
+  [hidden] { display: none !important; }
+
+  /* ---------- words ---------- */
+  #top {
+    position: fixed; inset: 0 0 auto 0; z-index: 1; pointer-events: none; text-align: center;
+    padding: calc(env(safe-area-inset-top) + clamp(18px, 4.5vh, 44px)) 20px 0;
+  }
+  #title {
+    margin: 0; rotate: -3deg; font: 400 clamp(42px, 12.5vmin, 108px)/.95 var(--display);
+    text-shadow: 0 .06em 0 var(--bg-deep); text-wrap: balance;
+  }
+  /* --fit is set from JS: long titles and long names are shrunk until they fit the screen. */
+  #title { font-size: calc(clamp(42px, 12.5vmin, 108px) * var(--fit, 1)); }
+  #title.small { font-size: calc(clamp(28px, 7.6vmin, 54px) * var(--fit, 1)); }
+  #title .word { display: inline-block; white-space: nowrap; }
+  #title .word.pun { display: inline; white-space: normal; }  /* long punchline may drop to its own line */
+  /* The punchline: *starred* words in CONFIG.title get the gold, tilted, wiggling treatment. */
+  #title em {
+    display: inline-block; font-style: normal; color: var(--accent); margin: 0 .1em 0 .12em;
+    rotate: -7deg; scale: 1.16; transform-origin: 35% 75%; animation: punwiggle 3.4s ease-in-out infinite;
+  }
+  #kicker {
+    display: inline-block; margin: 0 0 clamp(8px, 1.8vmin, 14px); rotate: 2deg;
+    background: var(--cream); color: var(--bg); border-radius: 99px; padding: .34em .9em .42em;
+    font: 400 clamp(14px, 3.1vmin, 22px)/1 var(--display); box-shadow: 0 3px 0 var(--shade);
+  }
+  @media (prefers-reduced-motion: reduce) { #title em { animation: none; } }
+  #sub {
+    margin: clamp(12px, 2.4vmin, 20px) 0 0; font: 700 clamp(12px, 2.3vmin, 16px)/1.35 var(--text);
+    letter-spacing: .15em; text-transform: uppercase; text-wrap: balance;
+  }
+  .pop { animation: pop .42s cubic-bezier(.3, 1.5, .5, 1) both; }
+
+  #bottom {
+    position: fixed; inset: auto 0 0 0; z-index: 6; pointer-events: none; text-align: center;
+    padding: 0 20px calc(env(safe-area-inset-bottom) + clamp(18px, 4vh, 38px));
+  }
+  #bottom > * { pointer-events: auto; }
+  #big {
+    margin: 0; rotate: -3deg; color: var(--accent); pointer-events: none;
+    font: 400 clamp(58px, 17vmin, 136px)/.9 var(--display); text-shadow: 0 .06em 0 var(--bg-deep);
+    font-size: calc(clamp(58px, 17vmin, 136px) * var(--fit, 1)); white-space: nowrap;
+  }
+  #note {
+    margin: clamp(12px, 2.4vmin, 20px) 0 0; pointer-events: none;
+    font: 700 clamp(12px, 2.3vmin, 16px)/1.35 var(--text); letter-spacing: .15em; text-transform: uppercase;
+  }
+  #actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: clamp(14px, 3vmin, 24px); }
+  #actions:empty { display: none; }
+  .btn {
+    border: 0; border-radius: 99px; padding: .85em 1.35em .92em; cursor: pointer; touch-action: manipulation;
+    background: var(--cream); color: var(--bg); font: 400 clamp(17px, 2.7vmin, 22px)/1 var(--display);
+    box-shadow: 0 5px 0 var(--shade); transition: translate .08s, box-shadow .08s;
+  }
+  .btn:active { translate: 0 4px; box-shadow: 0 1px 0 var(--shade); }
+  .btn.ghost { background: none; color: var(--cream); box-shadow: inset 0 0 0 2.5px rgba(255, 243, 220, .75); }
+  .btn:focus-visible, #reset:focus-visible, #sound:focus-visible, #present:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  #reset {
+    border: 0; border-radius: 99px; background: rgba(60, 0, 8, .4); color: var(--cream); cursor: pointer;
+    padding: 8px 14px; font: 600 13px var(--text); touch-action: manipulation;
+  }
+  @media (max-height: 480px) {
+    #big { font-size: calc(clamp(40px, 13vmin, 60px) * var(--fit, 1)); }
+    #actions { margin-top: 10px; }
+    #note { margin-top: 8px; }
+  }
+
+  /* ---------- heads ---------- */
+  #arena { position: fixed; inset: 0; z-index: 2; }
+  #arena.shake { animation: shake .45s ease-out; }
+  .head {
+    position: absolute; left: 0; top: 0; width: var(--d); height: var(--d); padding: 0; border: 0; background: none;
+    display: grid; place-items: center; cursor: grab; touch-action: none; transition: opacity .35s; font: inherit;
+  }
+  .head:active { cursor: grabbing; }
+  .head:focus { outline: none; }
+  .head:focus-visible .tag { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #arena:is([data-state="confirm"], [data-state="draw"], [data-state="reset"]) .head { pointer-events: none; }
+  .spin { position: relative; width: calc(var(--d) * var(--aw)); height: calc(var(--d) * var(--ah)); }
+  .spin img {
+    display: block; width: 100%; height: 100%; pointer-events: none; -webkit-user-drag: none;
+    filter: drop-shadow(0 0 calc(var(--d) * .07) var(--shade));
+  }
+  .spin img.nope { animation: nope .55s ease-in-out; }
+  .tag {
+    position: absolute; top: 97%; left: 50%; translate: -50% 0; rotate: var(--tilt, 0deg); pointer-events: none;
+    background: var(--cream); color: var(--bg); white-space: nowrap; border-radius: 99px; padding: .3em .7em .38em;
+    font: 400 clamp(12px, calc(var(--d) * .13), 19px)/1 var(--display);
+    box-shadow: 0 2px 0 var(--shade); transition: opacity .25s;
+  }
+  .head.me .tag { background: var(--accent); color: var(--ink); }
+  .head.dim { opacity: .3; }
+  .head.notag .tag { opacity: 0; }
+
+  .hat {
+    position: absolute; left: var(--hx); top: var(--hy); width: 66%; aspect-ratio: 120 / 100;
+    translate: -50% -58%; rotate: var(--hr); transform-origin: 50% 80%; pointer-events: none;
+  }
+  .hat svg { display: block; width: 100%; height: 100%; overflow: visible; animation: hatdrop .75s cubic-bezier(.3, 1.45, .5, 1) both; }
+
+  /* ---------- present ---------- */
+  #present {
+    position: fixed; left: 50%; top: 55%; z-index: 3; width: var(--p); height: var(--p);
+    margin: calc(var(--p) / -2) 0 0 calc(var(--p) / -2); padding: 0; border: 0; background: none;
+    cursor: pointer; touch-action: manipulation;
+  }
+  #present.in { animation: presentin .55s cubic-bezier(.3, 1.6, .5, 1) both; }
+  #present .wrap { display: block; width: 100%; height: 100%; transform-origin: 50% 92%; animation: nudge 2.2s ease-in-out infinite; }
+  #present.hit .wrap { animation: smack .4s cubic-bezier(.3, 1.4, .5, 1); }
+  #present svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 14px var(--shade)); }
+  #present .lid, #present .box { transform-box: fill-box; transform-origin: center; }
+  #present.open { pointer-events: none; }
+  #present.open .wrap { animation: none; }
+  #present.open .lid { animation: lidoff .7s cubic-bezier(.2, .7, .3, 1) forwards; }
+  #present.open .box { animation: boxgone .45s .05s ease-in forwards; }
+
+  /* ---------- bits and bobs ---------- */
+  #fx { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
+  #flash { position: fixed; inset: 0; z-index: 8; background: #fff; opacity: 0; pointer-events: none; }
+  #flash.go { animation: flash .6s ease-out; }
+  #toast {
+    position: fixed; left: 50%; top: 50%; z-index: 7; translate: -50% -50%; rotate: -3deg; scale: .6; opacity: 0;
+    width: max-content; max-width: min(86vw, 520px); padding: .7em 1em .8em; border-radius: 24px; text-align: center;
+    background: var(--cream); color: var(--bg); font: 400 clamp(22px, 4.6vmin, 36px)/1.12 var(--display);
+    box-shadow: 0 8px 0 var(--shade); pointer-events: none; text-wrap: balance;
+    transition: opacity .18s, scale .28s cubic-bezier(.3, 1.7, .5, 1);
+  }
+  #toast.on { opacity: 1; scale: 1; }
+  #sound {
+    position: fixed; z-index: 6; top: calc(env(safe-area-inset-top) + 10px); right: calc(env(safe-area-inset-right) + 10px);
+    width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; cursor: pointer;
+    font-size: 20px; line-height: 1; opacity: .85; touch-action: manipulation;
+  }
+  #test {
+    position: fixed; z-index: 6; top: calc(env(safe-area-inset-top) + 18px); left: calc(env(safe-area-inset-left) + 14px);
+    background: var(--accent); color: var(--ink); border: 0; border-radius: 99px; padding: 5px 10px;
+    font: 800 11px var(--text); letter-spacing: .1em; text-transform: uppercase; touch-action: manipulation;
+  }
+  /* Setup reminders: only ever shown in test mode (and when there are no heads at all). Tap the pill to open. */
+  #todo {
+    position: fixed; z-index: 6; left: calc(env(safe-area-inset-left) + 14px); top: calc(env(safe-area-inset-top) + 52px);
+    max-width: min(78vw, 340px); margin: 0; padding: 10px 14px 10px 30px; border-radius: 14px;
+    background: var(--cream); color: var(--ink); font: 600 12px/1.4 var(--text); box-shadow: 0 3px 0 var(--shade);
+  }
+  #todo li + li { margin-top: 4px; }
+  #todo { pointer-events: none; }
+
+  @keyframes pop { from { scale: .6; opacity: 0; } 60% { scale: 1.08; opacity: 1; } to { scale: 1; } }
+  @keyframes punwiggle { 0%, 76%, 100% { rotate: -7deg; } 82% { rotate: -14deg; } 88% { rotate: 1deg; } 94% { rotate: -10deg; } }
+  @keyframes nudge { 0%, 68%, 100% { rotate: 0deg; } 74% { rotate: -7deg; } 82% { rotate: 7deg; } 90% { rotate: -3deg; } }
+  @keyframes smack {
+    0% { scale: 1; } 22% { scale: 1.28 .74; } 50% { scale: .88 1.16; rotate: 8deg; } 78% { rotate: -5deg; } 100% { scale: 1; rotate: 0deg; }
+  }
+  @keyframes presentin { from { scale: 0; rotate: -50deg; } to { scale: 1; rotate: 0deg; } }
+  @keyframes lidoff { to { transform: translate(40px, -260px) rotate(80deg); opacity: 0; } }
+  @keyframes boxgone { to { transform: scale(1.6); opacity: 0; } }
+  @keyframes flash { from { opacity: .85; } to { opacity: 0; } }
+  @keyframes hatdrop { 0% { translate: 0 -340%; rotate: -70deg; opacity: 0; } 25% { opacity: 1; } 100% { translate: 0 0; rotate: 0deg; opacity: 1; } }
+  @keyframes nope { 0%, 100% { rotate: 0deg; } 15% { rotate: -18deg; } 35% { rotate: 15deg; } 55% { rotate: -11deg; } 75% { rotate: 7deg; } }
+  @keyframes shake { 0%, 100% { translate: 0 0; } 20% { translate: -11px 7px; } 40% { translate: 9px -8px; } 60% { translate: -6px -4px; } 80% { translate: 5px 4px; } }
+</style>
+</head>
+<body>
+
+<header id="top" aria-live="polite">
+  <!-- Filled in from config.js. -->
+  <p id="kicker" hidden></p>
+  <h1 id="title"></h1>
+  <p id="sub"></p>
+</header>
+
+<div id="arena" data-state="lobby"></div>
+
+<button id="present" type="button" aria-label="Present" hidden>
+  <span class="wrap">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <g class="box">
+        <rect x="32" y="88" width="136" height="98" rx="9" fill="#fff" stroke="#fff" stroke-width="14" stroke-linejoin="round"/>
+        <rect x="32" y="88" width="136" height="98" rx="9" fill="#1e8a54"/>
+        <rect x="88" y="88" width="24" height="98" fill="#ffd166"/>
+        <rect x="32" y="88" width="136" height="16" fill="#000" opacity=".16"/>
+      </g>
+      <g class="lid">
+        <g fill="#fff" stroke="#fff" stroke-width="14" stroke-linejoin="round">
+          <rect x="22" y="62" width="156" height="34" rx="9"/>
+          <path d="M100 62C80 22 42 22 51 47c5 14 33 16 49 15Z"/>
+          <path d="M100 62c20-40 58-40 49-15-5 14-33 16-49 15Z"/>
+        </g>
+        <path d="M100 62C80 22 42 22 51 47c5 14 33 16 49 15Z" fill="#ffd166"/>
+        <path d="M100 62c20-40 58-40 49-15-5 14-33 16-49 15Z" fill="#f6bd45"/>
+        <rect x="22" y="62" width="156" height="34" rx="9" fill="#27a565"/>
+        <rect x="88" y="62" width="24" height="34" fill="#ffd166"/>
+        <circle cx="100" cy="60" r="10" fill="#f0ad2e"/>
+      </g>
+    </svg>
+  </span>
+</button>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<footer id="bottom">
+  <p id="big" hidden></p>
+  <p id="note" hidden></p>
+  <div id="actions"></div>
+  <button id="reset" type="button" hidden></button>
+</footer>
+
+<button id="sound" type="button" aria-label="Toggle sound">🔔</button>
+<button id="test" type="button" hidden>Test mode</button>
+<ul id="todo" hidden></ul>
+<div id="toast" role="status"></div>
+<div id="flash"></div>
+
+<!-- The words, the title and the draw phrase: config.js. The people: heads/heads.js. -->
+<script src="config.js"></script>
+<script src="heads/heads.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  // You shouldn't need to edit anything below: the things worth changing are in config.js.
+  const $ = id => document.getElementById(id);
+  const CONFIG = window.CONFIG || {};
+  const TEXT = Object.assign({
+    lobby: 'Tap your own head', welcomeBack: 'Hi {me}. Tap your head to peek again.', youTag: '{name} · you', notMe: 'Not {me}?',
+    confirmTitle: "You're {name}?", confirmSub: "Be honest. Santa's watching.", confirmYes: "Yep, that's my head", confirmNo: 'Nope',
+    present: ['Open your present', 'ONE MORE!'], presentSub: 'Your person is in there, {me}',
+    revealTitle: '{me}, you got', revealName: '{name}!', revealNote: 'Shhh. Tell no one.', back: 'Back to the gang',
+    cheats: ['Nice try, {me}. Santa saw that.', "That's {name}'s business, {me}.", 'Keep it up and you get coal.'],
+    resetTitle: 'Wrong head?', resetSub: 'Switching is for honest mistakes. Cheaters get coal.', resetYes: 'Switch heads', resetNo: 'Never mind',
+  }, CONFIG.text);
+  const TITLE = CONFIG.title || 'Secret *Santa*', SEED = String(CONFIG.seed || 'secret-santa');
+  const say = (line, vars = {}) => String(line).replace(/\{(\w+)\}/g, (all, k) => k in vars ? vars[k] : all);
+
+  // One entry per head: { id, name, src, w, h, crown: [x, y], roll }. See heads/heads.js.
+  const PEOPLE = (Array.isArray(window.HEADS) ? window.HEADS : [])
+    .filter((p, i, all) => p && p.id && p.src && all.findIndex(o => o && o.id === p.id) === i)
+    .map(p => ({ w: 400, h: 500, crown: [.5, .06], roll: 0, ...p, name: (CONFIG.names || {})[p.id] || p.name || p.id }));
+  document.title = TITLE.replace(/\*/g, '');
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const pick = list => list[Math.floor(Math.random() * list.length)];
+  const TAU = Math.PI * 2;
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ?test in the URL = play with the whole thing without seeing (or saving) the real draw.
+  const TEST = new URLSearchParams(location.search).has('test');
+  const KEY = 'secret-santa|' + SEED;
+  const store = {
+    get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+    set(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} },
+  };
+
+  // ───────────── the draw ─────────────
+  // Everyone is shuffled into one big ring by a hash of seed + name, and each person buys for the
+  // next person round the ring. Same seed → same ring on every phone, nobody gets themselves,
+  // and no two people ever just swap with each other.
+  function hash(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h ^= h >>> 16; h = Math.imul(h, 2246822507); h ^= h >>> 13; h = Math.imul(h, 3266489909); h ^= h >>> 16;
+    return h >>> 0;
+  }
+  function drawRing(seed) {
+    const ring = PEOPLE.map(p => p.id).sort((a, b) => hash(seed + '|' + a) - hash(seed + '|' + b) || (a < b ? -1 : 1));
+    const to = {};
+    ring.forEach((id, i) => { to[id] = ring[(i + 1) % ring.length]; });
+    return to;
+  }
+  const buysFor = drawRing(TEST ? 'test|' + Math.random() : SEED);
+
+  let me = TEST ? null : store.get(KEY + '|me');
+  if (!PEOPLE.some(p => p.id === me)) me = null;
+  function setMe(id) { me = id; if (!TEST) store.set(KEY + '|me', id); }
+
+  // ───────────── sound ─────────────
+  let actx = null, muted = store.get('secret-santa|mute') === '1';
+  function ac() {
+    if (muted) return null;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      if (actx.state === 'suspended') actx.resume();
+      return actx;
+    } catch { return null; }
+  }
+  function tone({ f, f2, t = 0, dur = .3, type = 'sine', vol = .2 }) {
+    const a = ac(); if (!a) return;
+    const t0 = a.currentTime + t, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t0);
+    if (f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+    g.gain.setValueAtTime(.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + .008);
+    g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+    o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + dur + .05);
+  }
+  function bell(f, t = 0, dur = .45, vol = .16) {
+    tone({ f, t, dur, vol });
+    tone({ f: f * 2.76, t, dur: dur * .5, vol: vol * .3 });
+    tone({ f: f * 5.4, t, dur: dur * .25, vol: vol * .12 });
+  }
+  const blip = () => bell(988, 0, .18, .1);
+  const thunk = n => { tone({ f: 150 + n * 50, f2: 55, dur: .2, type: 'triangle', vol: .5 }); bell(520 + n * 160, 0, .22, .08); };
+  function jingle() {
+    const E = 659.25, G = 783.99, C = 523.25, D = 587.33, q = .16;
+    [[E, 0], [E, 1], [E, 2, 2], [E, 4], [E, 5], [E, 6, 2], [E, 8], [G, 9], [C, 10], [D, 11], [E, 12, 4]]
+      .forEach(([f, i, len = 1]) => bell(f, i * q, .28 + len * .22, .15));
+  }
+  function womp() {
+    [[311, 0], [294, .3], [277, .6]].forEach(([f, t]) => tone({ f, t, dur: .28, type: 'triangle', vol: .2 }));
+    tone({ f: 262, f2: 185, t: .9, dur: .7, type: 'triangle', vol: .2 });
+  }
+  const soundBtn = $('sound');
+  const paintSound = () => { soundBtn.textContent = muted ? '🔕' : '🔔'; soundBtn.setAttribute('aria-pressed', String(!muted)); };
+  soundBtn.addEventListener('click', () => { muted = !muted; store.set('secret-santa|mute', muted ? '1' : null); paintSound(); if (!muted) blip(); });
+  paintSound();
+
+  // ───────────── layout ─────────────
+  const arena = $('arena'), present = $('present'), titleEl = $('title'), subEl = $('sub'), kickerEl = $('kicker');
+  const bigEl = $('big'), noteEl = $('note'), actions = $('actions'), resetEl = $('reset');
+  const toastEl = $('toast'), flash = $('flash'), fx = $('fx'), g2 = fx.getContext('2d');
+
+  // Setup reminders. Friends never see these: they only show in test mode (or if there are no heads).
+  const todo = [];
+  if (!PEOPLE.length) todo.push('No heads yet. Put photos in photos/ and run tools/cut-heads.sh (see the README).');
+  else if (PEOPLE.length < 3) todo.push('Secret Santa needs at least 3 people.');
+  if (TEST) {
+    const meta = name => (document.querySelector(`meta[property="${name}"]`) || {}).content || '';
+    if (PEOPLE.some(p => p.example)) todo.push('Still using the example cartoon heads.');
+    if (SEED === 'change-me-before-sharing') todo.push('config.js: pick your own seed before sharing the link.');
+    if (/YOUR-SITE/.test(meta('og:url') + meta('og:image'))) todo.push('index.html: the link preview still points at YOUR-SITE.example.');
+    if (!meta('og:title').includes(TITLE.replace(/\*/g, ''))) todo.push("index.html: the link preview title doesn't match the title in config.js.");
+  }
+  const testEl = $('test'), todoEl = $('todo');
+  todoEl.replaceChildren(...todo.map(line => Object.assign(document.createElement('li'), { textContent: line })));
+  todo.forEach(line => console.warn('[setup] ' + line));
+  testEl.hidden = !TEST && !todo.length;
+  testEl.textContent = (TEST ? 'Test mode' : 'Setup') + (todo.length ? ` · ${todo.length} to do` : '');
+  todoEl.hidden = !todo.length || PEOPLE.length > 0;   // tucked away behind the pill unless the page is empty
+  testEl.addEventListener('click', () => { if (todo.length) todoEl.hidden = !todoEl.hidden; });
+
+  let W = 0, H = 0, D = 120, cx = 0, cy = 0;
+  function measure() {
+    W = window.innerWidth; H = window.innerHeight;
+    const vmin = Math.min(W, H);
+    const crowd = clamp(Math.sqrt(8 / Math.max(PEOPLE.length, 1)), .6, 1);   // big groups get smaller heads
+    D = clamp(vmin * .28, 104, 190) * crowd;
+    cx = W / 2; cy = H * .55;
+    document.documentElement.style.setProperty('--d', D + 'px');
+    document.documentElement.style.setProperty('--p', clamp(vmin * .3, 110, 210) + 'px');
+  }
+  const ringR = () => Math.min(W * .36, H * .25);
+  const revealY = () => Math.max(H / 2 - 48, D * .9);
+  const bigScale = () => clamp(Math.min(W * 1.2, H - 400) / D, 1.25, 3);
+  function retrigger(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+  // ───────────── heads ─────────────
+  const HAT = `<svg viewBox="0 0 120 100" aria-hidden="true">
+    <g fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round">
+      <path d="M18 74C20 44 44 14 74 14c22 0 36 16 33 41-7-10-17-16-26-16 9 11 15 23 17 35Z"/>
+      <rect x="6" y="66" width="104" height="26" rx="13"/><circle cx="107" cy="58" r="11"/>
+    </g>
+    <path d="M18 74C20 44 44 14 74 14c22 0 36 16 33 41-7-10-17-16-26-16 9 11 15 23 17 35Z" fill="#e3263a"/>
+    <path d="M81 39c9 11 15 23 17 35H82c-1-13-5-25-12-34Z" fill="#b3172a"/>
+    <rect x="6" y="66" width="104" height="26" rx="13" fill="#fff"/>
+    <rect x="12" y="82" width="92" height="7" rx="3.5" fill="#f1dccc"/>
+    <circle cx="107" cy="58" r="11" fill="#fff"/>
+  </svg>`;
+
+  const heads = PEOPLE.map(p => {
+    const el = document.createElement('button');
+    el.type = 'button'; el.className = 'head'; el.setAttribute('aria-label', p.name);
+    el.style.setProperty('--aw', Math.min(1, p.w / p.h));
+    el.style.setProperty('--ah', Math.min(1, p.h / p.w));
+    el.style.setProperty('--tilt', rand(-5, 5).toFixed(1) + 'deg');
+    const spin = document.createElement('span'); spin.className = 'spin';
+    const img = new Image(); img.src = p.src; img.alt = ''; img.draggable = false;
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = p.name;
+    spin.append(img); el.append(spin, tag); arena.append(el);
+    return {
+      p, el, spin, img, tag, hat: null,
+      x: 0, y: 0, vx: 0, vy: 0, rot: rand(-25, 25), vrot: 0, tRot: null,
+      scale: 1, tScale: 1, mode: 'float', tx: 0, ty: 0, pull: 8,
+      drift: rand(14, 34) * pick([-1, 1]),   // lazy spin it settles back to, deg/s
+      cruise: rand(36, 62),                   // lazy float speed, px/s
+      wf: rand(.3, .8), wp: rand(0, TAU),     // wander
+      slot: 0, blend: 0, x0: 0, y0: 0,        // orbit bookkeeping
+    };
+  });
+  const byId = id => heads.find(h => h.p.id === id);
+  const rad = h => D * .36 * h.scale;
+
+  function seek(h, x, y, scale, upright) {
+    h.mode = 'seek'; h.tx = x; h.ty = y; h.tScale = scale; h.pull = 8; h.vx = h.vy = 0;
+    h.tRot = upright ? Math.round(h.rot / 360) * 360 : null;
+  }
+  function setFree(h) {
+    if (h.mode === 'float' || h.mode === 'held') return;
+    h.mode = 'float'; h.tRot = null;
+    const a = rand(0, TAU); h.vx = Math.cos(a) * 160; h.vy = Math.sin(a) * 160;
+  }
+  function putHat(h) {
+    takeHat(h);
+    const hat = document.createElement('span'); hat.className = 'hat'; hat.innerHTML = HAT;
+    hat.style.setProperty('--hx', h.p.crown[0] * 100 + '%');
+    hat.style.setProperty('--hy', h.p.crown[1] * 100 + '%');
+    hat.style.setProperty('--hr', h.p.roll + 'deg');
+    h.spin.append(hat); h.hat = hat;
+  }
+  function takeHat(h) { if (h.hat) { h.hat.remove(); h.hat = null; } }
+
+  // Grab, fling, tap.
+  function bind(h) {
+    let g = null;
+    h.el.addEventListener('pointerdown', e => {
+      if (e.button > 0) return;
+      const now = performance.now();
+      g = { id: e.pointerId, sx: e.clientX, sy: e.clientY, px: e.clientX, py: e.clientY, pt: now, t: now, vx: 0, vy: 0, moved: false };
+      if (h.mode !== 'float') return;   // parked heads can be tapped but not dragged
+      try { h.el.setPointerCapture(e.pointerId); } catch {}
+      g.ox = h.x - e.clientX; g.oy = h.y - e.clientY;
+      h.mode = 'held'; h.vx = h.vy = 0; h.el.style.zIndex = 3;
+    });
+    h.el.addEventListener('pointermove', e => {
+      if (!g || e.pointerId !== g.id) return;
+      if (Math.hypot(e.clientX - g.sx, e.clientY - g.sy) > 8) g.moved = true;
+      if (h.mode !== 'held') return;
+      const now = performance.now(), dt = Math.max(4, now - g.pt) / 1000;
+      g.vx = g.vx * .55 + (e.clientX - g.px) / dt * .45;
+      g.vy = g.vy * .55 + (e.clientY - g.py) / dt * .45;
+      g.px = e.clientX; g.py = e.clientY; g.pt = now;
+      h.x = e.clientX + g.ox; h.y = e.clientY + g.oy;
+    });
+    const end = e => {
+      if (!g || e.pointerId !== g.id) return;
+      const was = g, now = performance.now(); g = null;
+      if (h.mode === 'held') {
+        h.mode = 'float'; h.el.style.zIndex = '';
+        if (was.moved && now - was.pt < 90) {
+          h.vx = clamp(was.vx, -2400, 2400); h.vy = clamp(was.vy, -2400, 2400);
+          h.vrot = clamp(h.vrot + was.vx * .4, -900, 900);
+        }
+      }
+      if (e.type === 'pointerup' && !was.moved && now - was.t < 600) tap(h);
+    };
+    h.el.addEventListener('pointerup', end);
+    h.el.addEventListener('pointercancel', end);
+    h.el.addEventListener('click', e => { if (e.detail === 0) tap(h); });   // keyboard
+  }
+  heads.forEach(bind);
+
+  // ───────────── the show ─────────────
+  let state = 'lobby', cand = null, chosen = null, orbit = null, taps = 0, cheats = 0;
+
+  // Each word stays in one piece when the title wraps; *starred* bits become <em>.
+  function paintTitle(raw) {
+    titleEl.replaceChildren(...raw.split(' ').flatMap((word, i) => {
+      const span = document.createElement('span'); span.className = word.includes('*') ? 'word pun' : 'word';
+      word.split('*').forEach((part, j) => {
+        if (!part) return;
+        if (j % 2) { const em = document.createElement('em'); em.textContent = part; span.append(em); }
+        else span.append(part);
+      });
+      return i ? [' ', span] : [span];
+    }));
+  }
+  // Shrink a line of display type until it fits the screen (long group names, long first names).
+  function fit(el, maxH) {
+    if (el.hidden) return;
+    let k = 1;
+    const tooBig = () => {
+      const widest = Math.max(el.scrollWidth, ...[...el.querySelectorAll('em')].map(em => em.offsetWidth * 1.22));
+      return widest > el.clientWidth + 1 || (maxH && el.offsetHeight > maxH);
+    };
+    el.style.setProperty('--fit', 1);
+    while (k > .46 && tooBig()) { k -= .06; el.style.setProperty('--fit', k.toFixed(2)); }
+  }
+  function fitWords() { fit(titleEl, H * .3); fit(bigEl); }
+  function ui({ title, kicker = '', small = false, sub = '', big = '', note = '', buttons = [], reset = '' }) {
+    if (titleEl.dataset.raw !== title) { titleEl.dataset.raw = title; paintTitle(title); retrigger(titleEl, 'pop'); }
+    kickerEl.textContent = kicker; kickerEl.hidden = !kicker;
+    titleEl.classList.toggle('small', small);
+    subEl.textContent = sub;
+    if (bigEl.textContent !== big) { bigEl.textContent = big; retrigger(bigEl, 'pop'); }
+    bigEl.hidden = !big;
+    fitWords();
+    noteEl.textContent = note; noteEl.hidden = !note;
+    actions.replaceChildren(...buttons.map(([label, fn, ghost]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn' + (ghost ? ' ghost' : ''); b.textContent = label;
+      b.addEventListener('click', fn);
+      return b;
+    }));
+    resetEl.textContent = reset; resetEl.hidden = !reset;
+  }
+  function setState(s) { state = s; arena.dataset.state = s; }
+
+  function goLobby() {
+    setState('lobby'); cand = chosen = orbit = null;
+    present.hidden = true; present.className = '';
+    for (const h of heads) {
+      setFree(h); takeHat(h); h.tScale = 1;
+      h.el.classList.remove('dim', 'notag'); h.el.style.zIndex = '';
+      const mine = h.p.id === me;
+      h.el.classList.toggle('me', mine);
+      h.tag.textContent = mine ? say(TEXT.youTag, { name: h.p.name, me: h.p.name }) : h.p.name;
+    }
+    const who = me ? { me: byId(me).p.name, name: byId(me).p.name } : {};
+    ui({
+      title: TITLE, kicker: CONFIG.kicker || '',
+      sub: me ? say(TEXT.welcomeBack, who) : TEXT.lobby,
+      reset: me ? say(TEXT.notMe, who) : '',
+    });
+  }
+
+  function goConfirm(h) {
+    setState('confirm'); cand = h;
+    for (const o of heads) o.el.classList.toggle('dim', o !== h);
+    seek(h, cx, H * .47, Math.min(2.2, bigScale()), true);
+    h.el.classList.add('notag'); h.el.style.zIndex = 3;
+    const who = { name: h.p.name, me: h.p.name };
+    ui({
+      title: say(TEXT.confirmTitle, who),
+      sub: say(TEXT.confirmSub, who),
+      buttons: [[say(TEXT.confirmYes, who), () => { setMe(h.p.id); blip(); goDraw(); }], [say(TEXT.confirmNo, who), goLobby, true]],
+    });
+  }
+
+  function goDraw() {
+    setState('draw'); taps = 0;
+    const mine = byId(me);
+    // You're not in the hat: step aside.
+    mine.mode = 'seek'; mine.tx = mine.x; mine.ty = mine.y; mine.tScale = 0; mine.tRot = null;
+    const list = heads.filter(h => h !== mine).sort(() => Math.random() - .5);
+    const r = ringR(), chord = list.length > 1 ? 2 * r * Math.sin(Math.PI / list.length) : Infinity;
+    orbit = { list, angle: rand(0, TAU), speed: 0, tSpeed: calm ? .3 : .8, r, r0: r, tR: r };
+    list.forEach((h, i) => {
+      h.mode = 'orbit'; h.slot = i; h.blend = 0; h.x0 = h.x; h.y0 = h.y; h.tRot = null;
+      h.tScale = Math.min(1, chord / (D * .78));
+      h.el.classList.remove('dim', 'notag'); h.el.style.zIndex = '';
+    });
+    present.hidden = false; present.className = ''; retrigger(present, 'in');
+    ui({ title: say(LINES[0], { me: mine.p.name }), small: true, sub: say(TEXT.presentSub, { me: mine.p.name }) });
+  }
+
+  // One line of TEXT.present per tap; the present opens on the tap after the last line.
+  const LINES = [].concat(TEXT.present).filter(Boolean).length ? [].concat(TEXT.present).filter(Boolean) : ['Open your present'];
+  function smack() {
+    if (state !== 'draw') return;
+    taps++; thunk(Math.min(taps + 1, 4));
+    if (taps >= LINES.length) return pop();
+    retrigger(present, 'hit');
+    const k = taps / (LINES.length - 1), wind = Math.pow(k, 1.6);   // 0 → 1 as the last tap gets close
+    orbit.tSpeed = calm ? .3 + .9 * wind : .8 + 5.4 * wind;
+    orbit.tR = orbit.r0 * (1 - .14 * k);
+    burst(cx, cy, Math.round(20 * k), 520);
+    ui({ title: say(LINES[taps], { me: byId(me).p.name }), small: taps < LINES.length - 1, sub: subEl.textContent });
+  }
+  present.addEventListener('pointerdown', e => { if (e.button === 0) smack(); });
+  present.addEventListener('click', e => { if (e.detail === 0) smack(); });   // keyboard
+
+  function pop() {
+    setState('reveal');
+    const mine = byId(me), list = orbit.list;
+    chosen = byId(buysFor[me]); orbit = null;
+    present.classList.add('open');
+    setTimeout(() => { if (state === 'reveal') present.hidden = true; }, 720);
+    retrigger(flash, 'go');
+    if (!calm) retrigger(arena, 'shake');
+    burst(cx, cy, calm ? 50 : 170, 1000);
+    rainFor = calm ? 0 : 1.8;
+    jingle();
+
+    for (const h of list) {
+      if (h === chosen) continue;
+      const a = Math.atan2(h.y - cy, h.x - cx);
+      h.mode = 'float'; h.vx = Math.cos(a) * 950; h.vy = Math.sin(a) * 950; h.vrot = rand(-700, 700);
+      h.tScale = .72; h.el.classList.add('dim');
+    }
+    // The chosen one bursts out of the box.
+    chosen.x = cx; chosen.y = cy; chosen.scale = .1;
+    seek(chosen, cx, revealY(), bigScale(), true);
+    chosen.pull = 5; chosen.tRot += calm ? 0 : 1080;
+    chosen.el.classList.add('notag'); chosen.el.style.zIndex = 3;
+
+    const who = { me: mine.p.name, name: chosen.p.name };
+    const title = say(TEXT.revealTitle, who);
+    ui({ title, small: true });
+    setTimeout(() => {
+      if (state !== 'reveal') return;
+      putHat(chosen);
+      ui({
+        title, small: true, big: say(TEXT.revealName, who),
+        note: [say(TEXT.revealNote, who), CONFIG.details].filter(Boolean).join(' · '),
+        buttons: [[say(TEXT.back, who), goLobby]],
+      });
+    }, 900);
+  }
+
+  function cheat(h) {
+    const lines = [].concat(TEXT.cheats).filter(Boolean);
+    if (lines.length) toast(say(lines[cheats++ % lines.length], { me: byId(me).p.name, name: h.p.name }));
+    womp();
+    retrigger(h.img, 'nope');
+  }
+
+  function tap(h) {
+    if (PEOPLE.length < 2) return;
+    if (state === 'lobby') {
+      if (me && h.p.id !== me) return cheat(h);
+      blip();
+      me ? goDraw() : goConfirm(h);
+    } else if (state === 'reveal' && h === chosen) {
+      h.tRot += 360; blip();
+    }
+  }
+
+  resetEl.addEventListener('click', () => {
+    setState('reset');
+    for (const h of heads) h.el.classList.add('dim');
+    const who = me ? { me: byId(me).p.name, name: byId(me).p.name } : {};
+    ui({
+      title: say(TEXT.resetTitle, who),
+      sub: say(TEXT.resetSub, who),
+      buttons: [[say(TEXT.resetYes, who), () => { setMe(null); goLobby(); }], [say(TEXT.resetNo, who), goLobby, true]],
+    });
+  });
+
+  let toastTimer = 0;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.classList.add('on');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('on'), 2300);
+  }
+
+  // ───────────── physics ─────────────
+  let clock = 0;
+  function stepHeads(dt) {
+    const ease = rate => 1 - Math.exp(-rate * dt);
+    if (orbit) {
+      orbit.speed += (orbit.tSpeed - orbit.speed) * ease(3);
+      orbit.r += (orbit.tR - orbit.r) * ease(4);
+      orbit.angle += orbit.speed * dt;
+    }
+    for (const h of heads) {
+      h.scale += (h.tScale - h.scale) * ease(h.mode === 'seek' ? h.pull : 9);
+
+      if (h.mode === 'float') {
+        const sp = Math.hypot(h.vx, h.vy), cruise = h.cruise * (calm ? .45 : 1);
+        if (h.y < 0) h.vy = Math.max(h.vy, 420);   // still raining in from above: keep falling
+        else if (sp > cruise) { const k = Math.exp(-1.7 * dt); h.vx *= k; h.vy *= k; }
+        else if (sp < cruise * .85) {
+          const a = sp > 1 ? Math.atan2(h.vy, h.vx) : rand(0, TAU);
+          h.vx += Math.cos(a) * cruise * dt * 2; h.vy += Math.sin(a) * cruise * dt * 2;
+        }
+        const turn = Math.sin(clock * h.wf + h.wp) * .5 * dt, c = Math.cos(turn), s = Math.sin(turn);
+        [h.vx, h.vy] = [h.vx * c - h.vy * s, h.vx * s + h.vy * c];
+        h.x += h.vx * dt; h.y += h.vy * dt;
+        const r = rad(h);   // walls only push back heads that are trying to leave, so they can rain in from above
+        if (h.x < r && h.vx < 0) { h.x = r; h.vx *= -.9; h.vrot += h.vy * .25; }
+        if (h.x > W - r && h.vx > 0) { h.x = W - r; h.vx *= -.9; h.vrot -= h.vy * .25; }
+        if (h.y < r && h.vy < 0) { h.y = r; h.vy *= -.9; h.vrot -= h.vx * .25; }
+        if (h.y > H - r && h.vy > 0) { h.y = H - r; h.vy *= -.9; h.vrot += h.vx * .25; }
+        h.vrot = clamp(h.vrot + (h.drift - h.vrot) * ease(.9), -900, 900);
+        h.rot += h.vrot * dt;
+      } else if (h.mode === 'held') {
+        h.vrot *= Math.exp(-3 * dt); h.rot += h.vrot * dt;
+      } else if (h.mode === 'seek') {
+        h.x += (h.tx - h.x) * ease(h.pull); h.y += (h.ty - h.y) * ease(h.pull);
+        if (h.tRot != null) h.rot += (h.tRot - h.rot) * ease(4.5);
+      } else if (h.mode === 'orbit' && orbit) {
+        const a = orbit.angle + h.slot * TAU / orbit.list.length;
+        const r = orbit.r * (1 + .05 * Math.sin(clock * 3 + h.slot * 1.7));
+        h.blend = Math.min(1, h.blend + dt / .7);
+        const e = 1 - Math.pow(1 - h.blend, 3);
+        h.x = h.x0 + (cx + Math.cos(a) * r - h.x0) * e;
+        h.y = h.y0 + (cy + Math.sin(a) * r - h.y0) * e;
+        h.rot += (h.drift * 2 + orbit.speed * 70 * Math.sign(h.drift)) * dt;
+      }
+    }
+
+    // Heads bonk off each other (only the free-floating ones; a held head is an immovable object).
+    for (let i = 0; i < heads.length; i++) {
+      for (let j = i + 1; j < heads.length; j++) {
+        const a = heads[i], b = heads[j];
+        const af = a.mode === 'float', bf = b.mode === 'float';
+        if (!(af || bf) || !(af || a.mode === 'held') || !(bf || b.mode === 'held')) continue;
+        if (a.scale < .2 || b.scale < .2) continue;
+        let dx = b.x - a.x, dy = b.y - a.y, dist = Math.hypot(dx, dy);
+        const min = rad(a) + rad(b);
+        if (dist >= min) continue;
+        if (dist < .01) { dx = 1; dy = 0; dist = 1; }
+        const nx = dx / dist, ny = dy / dist, over = min - dist;
+        const wa = af ? (bf ? .5 : 1) : 0, wb = bf ? (af ? .5 : 1) : 0;
+        a.x -= nx * over * wa; a.y -= ny * over * wa; b.x += nx * over * wb; b.y += ny * over * wb;
+        const rvx = b.vx - a.vx, rvy = b.vy - a.vy, vn = rvx * nx + rvy * ny;
+        if (vn >= 0) continue;
+        const jn = -1.9 * vn * (af && bf ? .5 : 1);
+        if (af) { a.vx -= jn * nx; a.vy -= jn * ny; }
+        if (bf) { b.vx += jn * nx; b.vy += jn * ny; }
+        const vt = (rvy * nx - rvx * ny) * .3;
+        if (af) a.vrot = clamp(a.vrot + vt, -900, 900);
+        if (bf) b.vrot = clamp(b.vrot + vt, -900, 900);
+      }
+    }
+
+    const half = D / 2;
+    for (const h of heads) {
+      h.el.style.transform = `translate3d(${(h.x - half).toFixed(1)}px,${(h.y - half).toFixed(1)}px,0)`;
+      h.spin.style.transform = `rotate(${h.rot.toFixed(1)}deg) scale(${h.scale.toFixed(3)})`;
+      h.el.style.visibility = h.scale < .03 ? 'hidden' : '';
+    }
+  }
+
+  // ───────────── snow + confetti ─────────────
+  const COLORS = ['#ffffff', '#ffd166', '#35b877', '#fff3dc', '#8fe0b3', '#ffb84d'];
+  let flakes = [], bits = [], rainFor = 0;
+  function sizeFx() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    fx.width = Math.round(W * dpr); fx.height = Math.round(H * dpr);
+    g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const want = Math.round(clamp(W * H / 13000, 28, 120));
+    while (flakes.length < want) {
+      flakes.push({ x: rand(0, W), y: rand(0, H), r: rand(1, 3.6), s: rand(18, 58), a: rand(8, 26), w: rand(.4, 1.3), p: rand(0, TAU), o: rand(.35, .9) });
+    }
+    flakes.length = want;
+  }
+  function confetto(x, y, vx, vy) {
+    if (bits.length > 520) return;
+    bits.push({ x, y, vx, vy, w: rand(6, 12), h: rand(9, 17), rot: rand(0, TAU), vr: rand(-9, 9), flip: rand(0, TAU), vf: rand(5, 13), c: pick(COLORS), life: rand(2, 3.4) });
+  }
+  function burst(x, y, n, power) {
+    for (let i = 0; i < n; i++) { const a = rand(0, TAU), s = rand(power * .2, power); confetto(x, y, Math.cos(a) * s, Math.sin(a) * s - power * .3); }
+  }
+  function stepFx(dt) {
+    g2.clearRect(0, 0, W, H);
+    g2.fillStyle = '#fff';
+    for (const f of flakes) {
+      f.y += f.s * dt; f.x += Math.sin(clock * f.w + f.p) * f.a * dt;
+      if (f.y > H + 6) { f.y = -6; f.x = rand(0, W); }
+      g2.globalAlpha = f.o; g2.beginPath(); g2.arc(f.x, f.y, f.r, 0, TAU); g2.fill();
+    }
+    if (rainFor > 0) { rainFor -= dt; for (let i = 0; i < 5; i++) confetto(rand(0, W), -20, rand(-60, 60), rand(80, 320)); }
+    const drag = Math.exp(-1.5 * dt);
+    for (const b of bits) {
+      b.vy += 760 * dt; b.vx *= drag; b.vy *= drag;
+      b.flip += b.vf * dt; b.rot += b.vr * dt; b.life -= dt;
+      b.x += (b.vx + Math.sin(b.flip) * 46) * dt; b.y += b.vy * dt;
+      g2.globalAlpha = clamp(b.life * 2, 0, 1); g2.fillStyle = b.c;
+      g2.save(); g2.translate(b.x, b.y); g2.rotate(b.rot); g2.scale(1, Math.cos(b.flip));
+      g2.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); g2.restore();
+    }
+    g2.globalAlpha = 1;
+    bits = bits.filter(b => b.life > 0 && b.y < H + 40);
+  }
+
+  // ───────────── go ─────────────
+  function layout() {
+    measure(); sizeFx(); fitWords();
+    if (state === 'confirm' && cand) { cand.tx = cx; cand.ty = H * .47; }
+    if (state === 'reveal' && chosen) { chosen.tx = cx; chosen.ty = revealY(); chosen.tScale = bigScale(); }
+    if (orbit) { const k = orbit.tR / orbit.r0; orbit.r0 = ringR(); orbit.tR = orbit.r0 * k; }
+  }
+  window.addEventListener('resize', layout);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
+
+  layout();
+  // Everyone rains in from above.
+  heads.slice().sort(() => Math.random() - .5).forEach((h, i) => {
+    h.x = W * (i + .5) / heads.length + rand(-20, 20);
+    h.y = -D * (.7 + i * .6);
+    h.vx = rand(-90, 90); h.vy = rand(280, 460); h.vrot = rand(-240, 240);
+  });
+  goLobby();
+
+  let last = performance.now();
+  requestAnimationFrame(function frame(now) {
+    const dt = Math.min(.034, (now - last) / 1000); last = now; clock += dt;
+    stepHeads(dt); stepFx(dt);
+    requestAnimationFrame(frame);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!doctype html>
+<!--
+  The link-preview picture (share.jpg, 1200×630): the title from config.js over everyone's head in a
+  Santa hat. It lays itself out for any number of people. To turn it into share.jpg:
+
+    sh tools/make-share-image.sh
+
+  (or open this file in a browser, make the page area exactly 1200×630, and take a screenshot).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&display=block" rel="stylesheet">
+<style>
+  /* COLOURS: keep these in step with the :root block in index.html. */
+  :root {
+    --bg: #b81d2c; --bg-light: #d62f3f; --bg-dark: #8a1120; --bg-deep: #7c0e1b;
+    --shade: rgba(60, 0, 8, .34); --cream: #fff3dc; --accent: #ffd166;
+  }
+  html, body { margin: 0; }
+  body {
+    position: relative; width: 1200px; height: 630px; overflow: hidden; color: var(--cream);
+    background: radial-gradient(85% 120% at 50% 18%, var(--bg-light) 0%, var(--bg) 52%, var(--bg-dark) 100%);
+    font-family: 'Bagel Fat One', 'Arial Rounded MT Bold', sans-serif;
+  }
+  .snow i { position: absolute; border-radius: 50%; background: #fff; }
+  .kicker {
+    position: absolute; left: 50%; top: 28px; translate: -50% 0; rotate: 2deg; white-space: nowrap;
+    background: var(--cream); color: var(--bg); font-size: 30px; line-height: 1; padding: .34em .9em .42em;
+    border-radius: 99px; box-shadow: 0 4px 0 var(--shade);
+  }
+  h1 {
+    position: absolute; left: 0; right: 0; top: 88px; margin: 0; text-align: center; white-space: nowrap;
+    font-weight: 400; font-size: 108px; line-height: 1; rotate: -3deg; text-shadow: 0 .06em 0 var(--bg-deep);
+  }
+  h1 span { display: inline-block; max-width: 1060px; line-height: .98; text-wrap: balance; }
+  h1 em {
+    display: inline-block; font-style: normal; color: var(--accent); margin: 0 .1em 0 .12em;
+    rotate: -7deg; scale: 1.16; transform-origin: 35% 75%;
+  }
+  .head { position: absolute; }
+  .head img { display: block; width: 100%; height: 100%; filter: drop-shadow(0 6px 12px rgba(60, 0, 8, .42)); }
+  .hat {
+    position: absolute; left: var(--hx); top: var(--hy); width: 66%; aspect-ratio: 120 / 100;
+    translate: -50% -58%; rotate: var(--hr); transform-origin: 50% 80%;
+    filter: drop-shadow(0 3px 5px rgba(60, 0, 8, .3));
+  }
+  .hat svg { display: block; width: 100%; height: 100%; overflow: visible; }
+</style>
+</head>
+<body>
+<div class="snow" id="snow"></div>
+<div class="kicker" id="kicker"></div>
+<h1><span id="title"></span></h1>
+<div id="row"></div>
+
+<script src="../config.js"></script>
+<script src="../heads/heads.js"></script>
+<script>
+  const CONFIG = window.CONFIG || {}, PEOPLE = window.HEADS || [];
+
+  // Words: *stars* in the title become the tilted, accent-coloured bit.
+  const title = document.getElementById('title');
+  (CONFIG.title || 'Secret *Santa*').split('*').forEach((part, i) => {
+    if (!part) return;
+    title.append(i % 2 ? Object.assign(document.createElement('em'), { textContent: part }) : part);
+  });
+  const kicker = document.getElementById('kicker');
+  kicker.textContent = CONFIG.kicker || '';
+  kicker.hidden = !CONFIG.kicker;
+  // Long titles shrink until they fit on one line; very long ones wrap onto two. Returns true if wrapped.
+  function fitTitle() {
+    let size = 108;
+    const set = wrap => { title.style.whiteSpace = wrap ? 'normal' : 'nowrap'; title.style.fontSize = size + 'px'; };
+    set(false);
+    while (size > 44 && title.offsetWidth > 1040) { size -= 4; set(false); }
+    if (size >= 72) return false;
+    size = 92; set(true);
+    while (size > 44 && (title.offsetHeight > 184 || title.scrollWidth > 1060)) { size -= 4; set(true); }
+    return true;
+  }
+
+  const HAT = `<svg viewBox="0 0 120 100">
+    <g fill="#fff" stroke="#fff" stroke-width="10" stroke-linejoin="round">
+      <path d="M18 74C20 44 44 14 74 14c22 0 36 16 33 41-7-10-17-16-26-16 9 11 15 23 17 35Z"/>
+      <rect x="6" y="66" width="104" height="26" rx="13"/><circle cx="107" cy="58" r="11"/>
+    </g>
+    <path d="M18 74C20 44 44 14 74 14c22 0 36 16 33 41-7-10-17-16-26-16 9 11 15 23 17 35Z" fill="#e3263a"/>
+    <path d="M81 39c9 11 15 23 17 35H82c-1-13-5-25-12-34Z" fill="#b3172a"/>
+    <rect x="6" y="66" width="104" height="26" rx="13" fill="#fff"/>
+    <rect x="12" y="82" width="92" height="7" rx="3.5" fill="#f1dccc"/>
+    <circle cx="107" cy="58" r="11" fill="#fff"/>
+  </svg>`;
+
+  // Heads: one row for up to 8 people, two rows beyond that, sized to fill the width.
+  const BOB = [10, -14, 12, -16, 8, -12], TILT = [7, -6, -8, 5, -5, 6];   // up/down nudge, final tilt of each face
+  function render() {
+    const down = fitTitle() ? 22 : 0;   // a two-line title pushes the heads down a little
+    const rows = PEOPLE.length > 8
+      ? [PEOPLE.slice(0, Math.ceil(PEOPLE.length / 2)), PEOPLE.slice(Math.ceil(PEOPLE.length / 2))]
+      : [PEOPLE];
+    const WIDE = 1090, MAX_H = (rows.length > 1 ? 150 : 262) - down, MIDS = rows.length > 1 ? [352 + down, 522 + down / 2] : [452 + down];
+    const box = document.getElementById('row');
+    box.replaceChildren();
+    let n = 0;
+    rows.forEach((row, r) => {
+      const aspect = row.reduce((sum, p) => sum + p.w / p.h, 0);
+      const lap = row.length > 5 ? 10 : 6;
+      const H = Math.min(MAX_H, (WIDE + lap * (row.length - 1)) / aspect);
+      let x = (1200 - (H * aspect - lap * (row.length - 1))) / 2;
+      row.forEach(p => {
+        const w = H * p.w / p.h, k = H / 262, el = document.createElement('div');
+        el.className = 'head';
+        el.style.cssText = `left:${x}px; top:${MIDS[r] - H / 2 + BOB[n % 6] * k}px; width:${w}px; height:${H}px; rotate:${TILT[n % 6] - p.roll}deg; z-index:${n % 2 ? 2 : 1}`;
+        el.innerHTML = `<img src="../${p.src}" alt=""><span class="hat" style="--hx:${p.crown[0] * 100}%; --hy:${p.crown[1] * 100}%; --hr:${p.roll}deg">${HAT}</span>`;
+        box.append(el);
+        x += w - lap; n++;
+      });
+    });
+  }
+  render();
+  if (document.fonts) document.fonts.ready.then(render);   // measure again once the display font is in
+
+  // Snow, from a fixed seed so the picture renders the same every time.
+  let s = 20261225;
+  const rnd = () => { s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  for (let i = 0; i < 90; i++) {
+    const d = 3 + rnd() * 8, f = document.createElement('i');
+    f.style.cssText = `left:${rnd() * 1200}px; top:${rnd() * 630}px; width:${d}px; height:${d}px; opacity:${.3 + rnd() * .6}`;
+    document.getElementById('snow').append(f);
+  }
+</script>
+</body>
+</html>

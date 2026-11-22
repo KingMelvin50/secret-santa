@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 -8 364 472" width="364" height="472">
+  <!-- Placeholder head, so the site works before you add real photos. tools/cut-heads.sh replaces it. -->
+  <defs><g id="s"><circle cx="62" cy="285" r="28"/><circle cx="338" cy="285" r="28"/><ellipse cx="200" cy="275" rx="140" ry="172"/><circle cx="200" cy="36" r="28"/><path d="M54 190C46 100 118 46 200 46s154 54 146 144z"/><rect x="44" y="160" width="312" height="48" rx="20"/></g></defs>
+  <use href="#s" fill="#fff" stroke="#fff" stroke-width="24" stroke-linejoin="round"/>
+  <g fill="#c99a6b"><circle cx="62" cy="285" r="28"/><circle cx="338" cy="285" r="28"/><ellipse cx="200" cy="275" rx="140" ry="172"/></g>
+  <g fill="#a67746" opacity=".55"><circle cx="62" cy="285" r="13"/><circle cx="338" cy="285" r="13"/></g>
+  <g fill="#ff8a8a" opacity=".32"><circle cx="112" cy="318" r="24"/><circle cx="288" cy="318" r="24"/></g>
+  <g fill="none" stroke="#8d8f96" stroke-width="9" stroke-linecap="round"><path d="M126 226q24-15 48 0"/><path d="M226 226q24-15 48 0"/></g>
+  <g fill="#2a2320"><circle cx="150" cy="262" r="13"/><circle cx="250" cy="262" r="13"/></g>
+  <g fill="#fff"><circle cx="155" cy="257" r="4"/><circle cx="255" cy="257" r="4"/></g>
+  <path d="M200 276q-16 36 6 42" fill="none" stroke="#a67746" stroke-width="7" stroke-linecap="round"/>
+  <path d="M146 346q54 62 108 0z" fill="#7a1f2b"/><path d="M154 348q46 14 92 0l-4 11q-42 12-84 0z" fill="#fff"/>
+  <path d="M54 190C46 100 118 46 200 46s154 54 146 144z" fill="#2f8f5b"/><rect x="44" y="160" width="312" height="48" rx="20" fill="#256f47"/><path d="M92 170v28M146 170v28M200 170v28M254 170v28M308 170v28" stroke="#1d5a39" stroke-width="5" stroke-linecap="round"/><circle cx="200" cy="36" r="28" fill="#fff3dc"/><path d="M128 322c20-24 56-22 72-8 16-14 52-16 72 8-22 14-54 12-72 2-18 10-50 12-72-2z" fill="#d9dbe0"/>
+</svg>

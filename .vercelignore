@@ -1,0 +1,10 @@
+# Never upload the original photos (they can carry location data) or the build tools.
+photos
+tools
+.claude
+.git
+.DS_Store
+README.md
+AGENTS.md
+CLAUDE.md
+_site
