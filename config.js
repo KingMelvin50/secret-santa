@@ -15,7 +15,7 @@ window.CONFIG = {
   // people, so the same phrase gives the same matches on every phone.
   //   → Pick your own before sharing the link.
   //   → Changing it later (or adding/removing a person) re-draws EVERYONE.
-  seed: 'change-me-before-sharing',
+  seed: 'garland-chestnut-mitten-biscuit-8854',
 
   // Fix how a name is displayed without renaming the photo, e.g. { jd: 'JD', 'mary-kate': 'MK' }.
   // The key is the head's id in heads/heads.js.
